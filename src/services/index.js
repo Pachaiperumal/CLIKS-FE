@@ -24,3 +24,4 @@ export * from './publicService';
 export * from './profileService';
 export * from './settingsService';
 export * from './stockService';
+export * from './goalWalletService';

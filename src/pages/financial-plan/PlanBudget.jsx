@@ -1,9 +1,23 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financialPlanService } from '../../services';
-import '../../App.css';
-import { Home,Coffee,Car,ShoppingBag,Smartphone,RotateCcw,Save,Plus } from 'lucide-react';
-
-const DEFAULT_PLAN_ID = 1;
+import { 
+    Home, 
+    Coffee, 
+    Car, 
+    ShoppingBag, 
+    Smartphone, 
+    RotateCcw, 
+    Save, 
+    Plus, 
+    DollarSign,
+    Target,
+    PieChart,
+    ChevronRight,
+    TrendingUp,
+    Zap
+} from 'lucide-react';
+import { formatCurrency } from '../../lib/formatCurrency';
 
 const ICON_MAP = {
     'Home': Home,
@@ -16,21 +30,23 @@ const ICON_MAP = {
 const PlanBudget = () => {
     const queryClient = useQueryClient();
 
-    // Fetch total income from a general source or just use a fixed one if not available in current plan scope
-    // For now, let's assume it's part of the plan stats or we can fetch it
-    const { data: totalIncome = 5000 } = useQuery({
-        queryKey: ['plan-stats', DEFAULT_PLAN_ID],
+    // 1. Fetch available plans
+    const { data: plans = [], isLoading: plansLoading } = useQuery({
+        queryKey: ['financial-plans'],
         queryFn: async () => {
-             // In a real app, this might come from a specific endpoint
-             return 5000;
+            const res = await financialPlanService.getPlans();
+            return res.data || res;
         }
     });
 
+    const activePlanId = plans.length > 0 ? plans[0].id : null;
+
     // Fetch Plan Budgets
-    const { data: categories = [], isLoading } = useQuery({
-        queryKey: ['plan-budgets', DEFAULT_PLAN_ID],
+    const { data: categories = [], isLoading: budgetsLoading } = useQuery({
+        queryKey: ['plan-budgets', activePlanId],
         queryFn: async () => {
-            const data = await financialPlanService.getPlanBudgets(DEFAULT_PLAN_ID);
+            if (!activePlanId) return [];
+            const data = await financialPlanService.getPlanBudgets(activePlanId);
             return data.map(cat => ({
                 id: cat.id,
                 name: cat.name,
@@ -38,139 +54,159 @@ const PlanBudget = () => {
                 icon: ICON_MAP[cat.icon_name] || Home,
                 color: cat.color || 'blue'
             }));
-        }
+        },
+        enabled: !!activePlanId
     });
 
     const saveMutation = useMutation({
-        mutationFn: (data) => financialPlanService.updatePlanBudget(DEFAULT_PLAN_ID, data.id, data),
+        mutationFn: (data) => financialPlanService.updatePlanBudget(activePlanId, data.id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['plan-budgets', DEFAULT_PLAN_ID] });
+            queryClient.invalidateQueries({ queryKey: ['plan-budgets', activePlanId] });
         }
     });
 
+    // Fetch analysis for total income
+    const { data: analysis } = useQuery({
+        queryKey: ['plan-analysis', activePlanId],
+        queryFn: async () => {
+            if (!activePlanId) return null;
+            const res = await financialPlanService.getPlanAnalysis(activePlanId);
+            return res.data || res;
+        },
+        enabled: !!activePlanId
+    });
+
+    const totalIncome = analysis?.total_expected_income || 0;
     const totalAllocated = categories.reduce((sum, cat) => sum + cat.allocated, 0);
     const remaining = totalIncome - totalAllocated;
+    const allocationPercent = totalIncome > 0 ? (totalAllocated / totalIncome) * 100 : 0;
+
+    const isLoading = plansLoading || (activePlanId && budgetsLoading);
 
     if (isLoading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '400px' }}>
-                <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #E3F2FD', borderTopColor: '#2563EB', borderRadius: '50%' }} />
+            <div className="module-loader">
+                <div className="spinner-wrap">
+                    <div className="spinner"></div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="page-fade-in">
-            <div className="dashboard-header">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Budget Plan</h1>
-                    <p className="text-muted text-sm mt-1">Allocate your monthly funds effectively</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="btn-secondary">
-                        <RotateCcw size={18} />
-                        <span>Reset</span>
-                    </button>
-                    <button className="btn-primary" onClick={() => alert('Plan saved to server')}>
-                        <Save size={18} />
-                        <span>Save Plan</span>
-                    </button>
-                </div>
-            </div>
-
-            <div className="content-wrapper">
-                <div className="bg-white p-6 rounded-2xl border border-[var(--border-color)] mb-8 shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="text-center md:text-left">
-                            <p className="text-muted text-sm font-medium mb-1">Projected Income</p>
-                            <h2 className="text-3xl font-bold text-[var(--text-main)]">${totalIncome.toLocaleString()}</h2>
-                        </div>
-                        <div className="text-center md:text-left">
-                            <p className="text-muted text-sm font-medium mb-1">Total Allocated</p>
-                            <h2 className="text-3xl font-bold text-blue-600">${totalAllocated.toLocaleString()}</h2>
-                        </div>
-                        <div className="text-center md:text-left">
-                            <p className="text-muted text-sm font-medium mb-1">Remaining to Assign</p>
-                            <h2 className={`text-3xl font-bold ${remaining < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                ${remaining.toLocaleString()}
-                            </h2>
-                        </div>
-                    </div>
-                    <div className="mt-6 w-full bg-gray-100 rounded-full h-4 overflow-hidden">
-                        <div
-                            className={`h-full transition-all duration-500 ${remaining < 0 ? 'bg-red-500' : 'bg-blue-500'}`}
-                            style={{ width: `${Math.min((totalAllocated / totalIncome) * 100, 100)}%` }}
-                        ></div>
-                    </div>
-                    <p className="text-center mt-2 text-sm text-muted">
-                        You have allocated {Math.round((totalAllocated / totalIncome) * 100)}% of your income.
-                    </p>
-                </div>
-
-                <h3 className="section-title mb-4">Category Allocation</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {categories.map((cat) => (
-                        <div key={cat.id} className="bg-white p-5 rounded-xl border border-[var(--border-color)] hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${cat.color}-100 text-${cat.color}-600`}>
-                                        <cat.icon size={20} />
-                                    </div>
-                                    <span className="font-semibold text-[var(--text-main)]">{cat.name}</span>
-                                </div>
-                                <button className="text-gray-400 hover:text-blue-600"><Plus size={18} /></button>
-                            </div>
-
-                            <div className="mb-2">
-                                <label className="text-xs font-semibold text-muted uppercase">Allocated Amount</label>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <DollarSign size={16} className="text-muted" />
-                                    <input
-                                        type="number"
-                                        value={cat.allocated}
-                                        className="w-full font-bold text-lg text-[var(--text-main)] border-b border-gray-200 outline-none focus:border-blue-500 transition-colors bg-transparent"
-                                        readOnly
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="text-xs text-muted flex justify-between mt-3">
-                                <span>{totalAllocated > 0 ? ((cat.allocated / totalAllocated) * 100).toFixed(1) : 0}% of budget</span>
-                            </div>
-                        </div>
-                    ))}
-
-                    <button className="border-2 border-dashed border-[var(--border-color)] rounded-xl flex flex-col items-center justify-center gap-2 text-muted hover:border-blue-500 hover:text-blue-500 transition-colors min-h-[160px]">
-                        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-                            <Plus size={24} />
-                        </div>
-                        <span className="font-medium">Add Category</span>
-                    </button>
-                </div>
-            </div>
-
+        <div className="budget-module">
             <style>{`
-                .btn-secondary {
-                    background: white; border: 1px solid var(--border-color); color: var(--text-muted);
-                    padding: 0.5rem 1rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; font-size: 0.875rem;
-                }
-                .btn-secondary:hover { background: #F8FAFC; color: var(--text-main); }
+                .budget-module { font-family: 'Inter', sans-serif; color: #0F172A; }
+                .module-loader { display: flex; justify-content: center; align-items: center; min-height: 400px; }
+                .spinner { width: 40px; height: 40px; border: 3px solid #F1F5F9; border-top-color: #3B82F6; border-radius: 50%; animation: spin 1s linear infinite; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+
+                .top-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; }
+                .mini-stat-card { background: white; padding: 1.5rem; border-radius: 24px; border: 1px solid #F1F5F9; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+                .mini-label { display: block; font-size: 11px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+                .mini-value { font-size: 1.75rem; font-weight: 900; letter-spacing: -1px; }
                 
-                .section-title { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+                .allocation-overview { background: #0F172A; color: white; padding: 2rem; border-radius: 32px; margin-bottom: 2.5rem; position: relative; overflow: hidden; }
+                .overview-content { position: relative; z-index: 2; }
+                .overview-label { font-size: 12px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; }
+                .overview-title { font-size: 2rem; font-weight: 900; margin: 0.5rem 0 1.5rem; }
+                .progress-track { width: 100%; height: 12px; background: rgba(255,255,255,0.1); border-radius: 20px; overflow: hidden; margin-bottom: 1rem; }
+                .progress-fill { height: 100%; background: linear-gradient(90deg, #3B82F6, #60A5FA); border-radius: 20px; transition: width 1s ease-out; }
+                .overview-meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #94A3B8; }
+                .meta-value { color: white; }
+
+                .budget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+                .category-card { background: white; padding: 1.5rem; border-radius: 28px; border: 1px solid #F1F5F9; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+                .category-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.05); border-color: #3B82F6; }
                 
-                /* Tailwind-like utilities if not globally available yet for color classes */
-                .bg-blue-100 { background-color: #DBEAFE; } .text-blue-600 { color: #2563EB; }
-                .bg-orange-100 { background-color: #FFEDD5; } .text-orange-600 { color: #EA580C; }
-                .bg-green-100 { background-color: #DCFCE7; } .text-green-600 { color: #16A34A; }
-                .bg-purple-100 { background-color: #F3E8FF; } .text-purple-600 { color: #9333EA; }
-                .bg-yellow-100 { background-color: #FEF9C3; } .text-yellow-600 { color: #CA8A04; }
+                .cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+                .cat-icon-box { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+                .cat-name { font-weight: 800; font-size: 16px; color: #1E293B; }
                 
-                .text-blue-500 { color: #3B82F6; }
-                .bg-blue-500 { background-color: #3B82F6; }
-                .text-red-500 { color: #EF4444; }
-                .bg-red-500 { background-color: #EF4444; }
-                .text-green-500 { color: #22C55E; }
+                .input-group { position: relative; }
+                .input-group input { width: 100%; padding: 12px 16px 12px 32px; border-radius: 14px; border: 1px solid #F1F5F9; background: #F8FAFC; font-weight: 800; font-size: 16px; outline: none; transition: all 0.2s; }
+                .input-group input:focus { border-color: #3B82F6; background: white; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
+                .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94A3B8; }
+
+                .add-cat-btn { background: #F8FAFC; border: 2px dashed #E2E8F0; border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: #94A3B8; font-weight: 800; font-size: 14px; cursor: pointer; transition: all 0.2s; min-height: 180px; }
+                .add-cat-btn:hover { background: white; border-color: #3B82F6; color: #3B82F6; }
+                .btn-icon-plus { width: 44px; height: 44px; border-radius: 50%; background: white; border: 1px solid #F1F5F9; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+                .module-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #F1F5F9; }
+                .btn-save { background: #0F172A; color: white; border: none; padding: 12px 24px; border-radius: 14px; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: all 0.2s; }
+                .btn-save:hover { background: #2563EB; transform: translateY(-1px); }
             `}</style>
+
+            <div className="allocation-overview">
+                <div className="overview-content">
+                    <span className="overview-label">Portfolio Allocation</span>
+                    <h1 className="overview-title">How you're spending your money</h1>
+                    <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${Math.min(allocationPercent, 100)}%` }}></div>
+                    </div>
+                    <div className="overview-meta">
+                        <span>Allocated: <span className="meta-value">{Math.round(allocationPercent)}%</span></span>
+                        <span>Remaining: <span className="meta-value">{formatCurrency(remaining)}</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="top-stats-grid">
+                <div className="mini-stat-card">
+                    <span className="mini-label">Monthly Income</span>
+                    <h3 className="mini-value text-green-600">{formatCurrency(totalIncome)}</h3>
+                </div>
+                <div className="mini-stat-card">
+                    <span className="mini-label">Total Allocated</span>
+                    <h3 className="mini-value text-blue-600">{formatCurrency(totalAllocated)}</h3>
+                </div>
+                <div className="mini-stat-card">
+                    <span className="mini-label">Unassigned</span>
+                    <h3 className={`mini-value ${remaining < 0 ? 'text-red-500' : 'text-slate-400'}`}>{formatCurrency(remaining)}</h3>
+                </div>
+            </div>
+
+            <div className="budget-grid">
+                {categories.map((cat) => (
+                    <div key={cat.id} className="category-card">
+                        <div className="cat-header">
+                            <div className="flex items-center gap-3">
+                                <div className="cat-icon-box" style={{ backgroundColor: `${cat.color}15`, color: cat.color }}>
+                                    <cat.icon size={22} />
+                                </div>
+                                <span className="cat-name">{cat.name}</span>
+                            </div>
+                            <ChevronRight size={18} className="text-slate-300" />
+                        </div>
+
+                        <div className="input-group">
+                            <DollarSign className="input-icon" size={16} />
+                            <input 
+                                type="number" 
+                                value={cat.allocated} 
+                                readOnly 
+                                placeholder="0.00"
+                            />
+                        </div>
+
+                        <div style={{ marginTop: '1rem', fontSize: '12px', fontWeight: 700, color: '#94A3B8' }}>
+                            {totalAllocated > 0 ? ((cat.allocated / totalAllocated) * 100).toFixed(1) : 0}% of Total Budget
+                        </div>
+                    </div>
+                ))}
+
+                <button className="add-cat-btn">
+                    <div className="btn-icon-plus"><Plus size={24} /></div>
+                    <span>Add Category</span>
+                </button>
+            </div>
+
+            <div className="module-actions">
+                <button className="btn-save" onClick={() => saveMutation.mutate({ id: 1, name: 'Sample' })}>
+                    <Save size={18} />
+                    Save Budget Plan
+                </button>
+            </div>
         </div>
     );
 };

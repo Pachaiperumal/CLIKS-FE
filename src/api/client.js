@@ -45,11 +45,16 @@ function buildUrl(endpoint, params = null) {
     const url = new URL(path, baseUrl);
 
     if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                url.searchParams.append(key, String(value));
-            }
-        });
+        // Detect and ignore React Query context objects
+        const isReactQueryContext = params.queryKey && (params.signal instanceof AbortSignal || params.meta);
+        
+        if (!isReactQueryContext) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    url.searchParams.append(key, String(value));
+                }
+            });
+        }
     }
 
     return url.toString();

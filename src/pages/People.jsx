@@ -7,10 +7,12 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { peopleService } from '../services/peopleService';
 import '../App.css';
 import { formatCurrency } from '../lib/formatCurrency';
 
-const FeatureCard = ({ title, icon: Icon, color, path, stats }) => {
+const FeatureCard = ({ title, icon: Icon, color, path, stats, loading }) => {
     const navigate = useNavigate();
 
     return (
@@ -27,7 +29,9 @@ const FeatureCard = ({ title, icon: Icon, color, path, stats }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                position: 'relative',
+                overflow: 'hidden'
             }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
@@ -40,6 +44,12 @@ const FeatureCard = ({ title, icon: Icon, color, path, stats }) => {
                 e.currentTarget.style.borderColor = '#E2E8F0';
             }}
         >
+            {loading && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyCenter: 'center', zIndex: 10 }}>
+                    <div className="loader-small" />
+                </div>
+            )}
+            
             {/* Header Section */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
                 <div style={{
@@ -99,50 +109,81 @@ const FeatureCard = ({ title, icon: Icon, color, path, stats }) => {
 };
 
 const People = () => {
-    // Configuration for people sections
+    // ── Queries ─────────────────────────────────────────────────────────────
+    const { data: peopleRes, isLoading: loadingPeople } = useQuery({ 
+        queryKey: ['people-summary'], 
+        queryFn: () => peopleService.getPeople() 
+    });
+    
+    const { data: transRes, isLoading: loadingTrans } = useQuery({ 
+        queryKey: ['people-transactions-global'], 
+        queryFn: () => peopleService.getAllTransactions() 
+    });
+    
+    const { data: remindRes, isLoading: loadingRemind } = useQuery({ 
+        queryKey: ['people-reminders-global'], 
+        queryFn: () => peopleService.getAllReminders() 
+    });
+    
+    const { data: recordsRes, isLoading: loadingRecords } = useQuery({ 
+        queryKey: ['people-records-global'], 
+        queryFn: () => peopleService.getAllRecords() 
+    });
+
+    // ── Derived Data ────────────────────────────────────────────────────────
+    const contactSummary = peopleRes?.meta?.summary || { total_contacts: 0, total_receivables: 0, total_payables: 0 };
+    const reminderStats = remindRes?.meta?.stats || { upcoming: 0, overdue: 0, due_today: 0 };
+    const recordStats = recordsRes?.meta?.stats || { total_records: 0 };
+    const transactionMeta = transRes?.meta || { totalItems: 0 };
+
+    // ── Configuration ───────────────────────────────────────────────────────
     const sections = [
         {
             title: "People & Network",
             icon: Users,
-            color: "#2563EB", // Blue
+            color: "#2563EB",
             path: "/books/people/overview",
+            loading: loadingPeople,
             stats: [
-                { label: "Total Contacts", value: "24 People" },
-                { label: "Active Month", value: "5 Contacts" },
-                { label: "Groups", value: "2 Active" }
+                { label: "Total Contacts", value: `${contactSummary.total_contacts} People` },
+                { label: "Receivables", value: formatCurrency(contactSummary.total_receivables) },
+                { label: "Payables", value: formatCurrency(contactSummary.total_payables) }
             ]
         },
         {
             title: "Friend Transactions",
             icon: ArrowLeftRight,
-            color: "#9333EA", // Purple
+            color: "#9333EA",
             path: "/books/people/transactions",
+            loading: loadingTrans,
             stats: [
-                { label: "Pending Requests", value: "3 Requests" },
-                { label: "Total Volume", value: formatCurrency(15400) },
-                { label: "Settled", value: "12 Trans" }
+                { label: "Total Volume", value: formatCurrency(Number(contactSummary.total_receivables) + Number(contactSummary.total_payables)) },
+                { label: "Total Actions", value: `${transactionMeta.totalItems || 0} Records` },
+                { label: "Last Sync", value: "Real-time" }
             ]
         },
         {
             title: "Payment Reminders",
             icon: Bell,
-            color: "#F59E0B", // Amber
+            color: "#F59E0B",
             path: "/books/people/reminders",
+            loading: loadingRemind,
             stats: [
-                { label: "Upcoming", value: "2 Due" },
-                { label: "Overdue", value: "None" },
-                { label: "Recurring", value: "3 Active" }
+                { label: "Upcoming", value: `${reminderStats.upcoming} Due` },
+                { label: "Overdue", value: `${reminderStats.overdue} Alert` },
+                { label: "Due Today", value: `${reminderStats.due_today} Tasks` }
             ]
         },
         {
             title: "Documents & Records",
             icon: FileText,
-            color: "#10B981", // Emerald
+            color: "#10B981",
             path: "/books/people/records",
+            loading: loadingRecords,
             stats: [
-                { label: "Files", value: "15 Docs" },
-                { label: "Shared With", value: "4 People" },
-                { label: "Storage", value: "45 MB" }
+                { label: "Total Files", value: `${recordStats.total_records} Docs` },
+                { label: "Category", value: "Personal" },
+                { label: "Cloud Sync", value: "Active" }
             ]
         }
     ];
@@ -168,6 +209,7 @@ const People = () => {
                             color={section.color}
                             path={section.path}
                             stats={section.stats}
+                            loading={section.loading}
                         />
                     ))}
                 </div>

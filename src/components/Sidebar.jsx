@@ -3,7 +3,6 @@ import { Tooltip } from './common';
 import {
     Home,
     LayoutDashboard,
-    FileText,
     BarChart3,
     TrendingUp,
     TrendingDown,
@@ -75,8 +74,7 @@ const Sidebar = ({ isOpen }) => {
         if (path.includes('/books/stock')) return 'Stock';
         if (path.includes('/books/financial-plan') || path.includes('/books/plan/')) return 'Financial Plan';
         if (path.includes('/books/people')) return 'People';
-        if (path.includes('/books/contacts')) return 'Financial Contacts';
-        if (path.includes('/books/segregation')) return 'Segregation';
+        if (path.includes('/books/segregation')) return 'Goal Wallets';
         if (path.includes('/books/split-expense')) return 'Split Expense';
         if (path === '/auditor') return 'Audit';
 
@@ -227,23 +225,14 @@ const Sidebar = ({ isOpen }) => {
                             </div>
                         </button>
 
-                        {/* Other Items */}
+
                         <button
-                            className={`sidebar-item ${activeItem === 'Financial Contacts' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Financial Contacts', '/books/contacts')}
+                            className={`sidebar-item ${activeItem === 'Goal Wallets' ? 'active' : ''}`}
+                            onClick={() => handleItemClick('Goal Wallets', '/books/segregation')}
                         >
                             <div className="flex items-center gap-3">
-                                <FileText size={20} style={{ color: '#195BAC' }} />
-                                <span className="sidebar-label">Financial Contacts</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Segregation' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Segregation', '/books/segregation')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Layers size={20} style={{ color: '#195BAC' }} />
-                                <span className="sidebar-label">Segregation</span>
+                                <Target size={20} style={{ color: '#195BAC' }} />
+                                <span className="sidebar-label">Goal Wallets</span>
                             </div>
                         </button>
                         <button

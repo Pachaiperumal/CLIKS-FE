@@ -45,9 +45,11 @@ const PeopleOverview = React.lazy(() => import('./pages/people/PeopleOverview'))
 const PeopleTransactions = React.lazy(() => import('./pages/people/PeopleTransactions'));
 const PeopleReminders = React.lazy(() => import('./pages/people/PeopleReminders'));
 const PeopleRecords = React.lazy(() => import('./pages/people/PeopleRecords'));
-const FinancialContacts = React.lazy(() => import('./pages/FinancialContacts'));
+const PersonProfile = React.lazy(() => import('./pages/people/PersonProfile'));
+
 const Segregation = React.lazy(() => import('./pages/Segregation'));
 const SplitExpense = React.lazy(() => import('./pages/SplitExpense'));
+const GoalWallets = React.lazy(() => import('./pages/GoalWallets'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const FAQ = React.lazy(() => import('./pages/FAQ'));
@@ -121,12 +123,14 @@ function App() {
                         <Route path="/books/plan/analysis" element={<PlanAnalysis />} />
                         <Route path="/books/people" element={<People />} />
                         <Route path="/books/people/overview" element={<PeopleOverview />} />
+                        <Route path="/books/people/:id" element={<PersonProfile />} />
                         <Route path="/books/people/transactions" element={<PeopleTransactions />} />
                         <Route path="/books/people/reminders" element={<PeopleReminders />} />
                         <Route path="/books/people/records" element={<PeopleRecords />} />
-                        <Route path="/books/contacts" element={<FinancialContacts />} />
+
                         <Route path="/books/segregation" element={<Segregation />} />
                         <Route path="/books/split-expense" element={<SplitExpense />} />
+                        <Route path="/books/goal-wallets" element={<GoalWallets />} />
                         <Route path="/books/settings" element={<Settings />} />
                         <Route path="/books/faq" element={<FAQ />} />
 

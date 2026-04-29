@@ -15,6 +15,8 @@ const ENDPOINTS = {
     STOCK_LIST: '/stock',
     STOCK_DETAIL: (id) => `/stock/${id}`,
     STOCK_STATS: '/stock/stats',
+    STOCK_ADJUST: (id) => `/stock/${id}/adjust-quantity`,
+    STOCK_HISTORY: (id) => `/stock/${id}/history`,
 };
 
 // ---------------------------------------------------------------------------
@@ -111,5 +113,28 @@ export async function updateStockItem(id, itemData) {
 
 export async function deleteStockItem(id) {
     const res = await apiClient.delete(ENDPOINTS.STOCK_DETAIL(id));
+    return res.data;
+}
+
+/**
+ * Adjust stock quantity by a delta.
+ * 
+ * @param {string|number} id - Stock item ID
+ * @param {number} delta - Amount to add/subtract
+ * @returns {Promise<Object>} Updated item
+ */
+export async function adjustStockQuantity(id, delta) {
+    const res = await apiClient.patch(ENDPOINTS.STOCK_ADJUST(id), { delta });
+    return res.data;
+}
+
+/**
+ * Fetch stock transaction history.
+ * 
+ * @param {string|number} id - Stock item ID
+ * @returns {Promise<Array>} Transaction history
+ */
+export async function fetchStockHistory(id) {
+    const res = await apiClient.get(ENDPOINTS.STOCK_HISTORY(id));
     return res.data;
 }

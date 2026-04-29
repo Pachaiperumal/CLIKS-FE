@@ -94,11 +94,21 @@ async function parseErrorResponse(response) {
 
         if (contentType.includes('application/json')) {
             const body = await response.json();
-            return {
-                message: body.message || body.error || body.detail || 'An error occurred',
-                code: body.code || body.error_code || `HTTP_${response.status}`,
-                details: body.details || body.errors || null,
-            };
+            
+            // Extract error info from different potential formats
+            let message = body.message || 'An error occurred';
+            let code = body.code || `HTTP_${response.status}`;
+            let details = body.details || body.errors || null;
+
+            if (body.error && typeof body.error === 'object') {
+                message = body.error.message || message;
+                code = body.error.code || code;
+                details = body.error.details || details;
+            } else if (typeof body.error === 'string') {
+                message = body.error;
+            }
+
+            return { message, code, details };
         }
 
         // Non-JSON response

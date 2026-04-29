@@ -1,553 +1,864 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Filter, Package, ArrowUpRight, ArrowDownLeft, Loader2, AlertCircle, RefreshCw, X, CheckCircle2 } from 'lucide-react';
-import { queryKeys } from '../lib/queryClient';
-import { fetchStockItems, fetchStockStats, addStockItem } from '../services/stockService';
-import { ErrorState, EmptyState } from '../components/common';
-import '../App.css';
+import { 
+    Plus, Search, Filter, Package, Loader2, 
+    AlertCircle, X, CheckCircle2, Minus, 
+    History, Trash2, Edit3, ChevronRight,
+    TrendingUp, ArrowRight, ShoppingCart, Box
+} from 'lucide-react';
+import { 
+    fetchStockItems, 
+    fetchStockStats, 
+    addStockItem, 
+    updateStockItem,
+    adjustStockQuantity, 
+    deleteStockItem, 
+    fetchStockHistory 
+} from '../services/stockService';
+import { formatCurrency } from '../lib/formatCurrency';
 
 // ---------------------------------------------------------------------------
-// Sub-components
+// Components
 // ---------------------------------------------------------------------------
 
-const StockItem = ({ name, category, quantity, unit, value, status }) => (
-    <div className="stock-item-row">
-        <div className="stock-info">
-            <div className="stock-icon">
-                <Package size={20} />
+const StockItem = ({ item, onAdjust, onDelete, onEdit, onViewHistory }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+    const isLowStock = Number(item.quantity) < 5;
+    const isOutOfStock = Number(item.quantity) === 0;
+
+    return (
+        <div className={`stock-card ${isOutOfStock ? 'out-of-stock' : ''} ${isDeleting ? 'confirm-delete' : ''}`}>
+            <div className="card-accent" style={{ background: isLowStock ? '#EF4444' : '#3B82F6' }}></div>
+            
+            <div className="card-main">
+                {isDeleting ? (
+                    <div className="delete-confirm-overlay">
+                        <p>Remove this item?</p>
+                        <div className="confirm-actions">
+                            <button type="button" className="confirm-btn yes" onClick={() => { onDelete(item.id); setIsDeleting(false); }}>Yes</button>
+                            <button type="button" className="confirm-btn no" onClick={() => setIsDeleting(false)}>No</button>
+                        </div>
+                    </div>
+                ) : null}
+
+                <div className="item-identity">
+                    <div className="item-icon-box">
+                        <Box size={22} className={isLowStock ? 'text-red-500' : 'text-blue-500'} />
+                    </div>
+                    <div className="item-details">
+                        <h3>{item.name}</h3>
+                        <span className="category-tag">{item.category}</span>
+                    </div>
+                </div>
+
+                <div className="item-inventory">
+                    <div className="qty-controls">
+                        <button 
+                            type="button"
+                            className="qty-btn minus" 
+                            onClick={() => onAdjust(item.id, -1)}
+                            disabled={Number(item.quantity) === 0}
+                        >
+                            <Minus size={14} />
+                        </button>
+                        <div className="qty-display">
+                            <span className="qty-num">{Number(item.quantity)}</span>
+                            <span className="qty-label">{item.unit || 'pcs'}</span>
+                        </div>
+                        <button 
+                            type="button"
+                            className="qty-btn plus" 
+                            onClick={() => onAdjust(item.id, 1)}
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </div>
+                    {isLowStock && (
+                        <div className="low-stock-warning">
+                            <AlertCircle size={12} />
+                            <span>Low Stock</span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="item-actions">
+                    <div className="price-info">
+                        <span className="price-label">Value</span>
+                        <span className="price-val">{formatCurrency(item.value || 0)}</span>
+                    </div>
+                    <div className="action-row">
+                        <button type="button" className="action-icon-btn" onClick={() => onViewHistory(item)} title="History">
+                            <History size={16} />
+                        </button>
+                        <button type="button" className="action-icon-btn" onClick={() => onEdit(item)} title="Edit">
+                            <Edit3 size={16} />
+                        </button>
+                        <button type="button" className="action-icon-btn delete" onClick={() => setIsDeleting(true)} title="Delete">
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div className="stock-name">{name}</div>
-                <div className="stock-category">{category}</div>
-            </div>
         </div>
-        <div className="stock-quantity">
-            <span className="qty-value">{quantity}</span>
-            <span className="qty-unit">{unit}</span>
-        </div>
-        <div className="stock-value">₹{value}</div>
-        <div className={`stock-status status-${status.toLowerCase().replace(' ', '-')}`}>
-            {status}
-        </div>
-    </div>
-);
+    );
+};
 
-/**
- * Loading state component for the stock list.
- */
-const StockListLoading = () => (
-    <div className="stock-loading-state">
-        <Loader2 size={32} className="loading-spinner" />
-        <p>Loading stock items...</p>
-    </div>
-);
-
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
-
-
-// ---------------------------------------------------------------------------
-// AddItemModal Component
-// ---------------------------------------------------------------------------
-const AddItemModal = ({ isOpen, onClose, onAdd }) => {
-    if (!isOpen) return null;
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [formData, setFormData] = React.useState({
+const AddItemModal = ({ isOpen, onClose, onSave, editingItem }) => {
+    const [formData, setFormData] = useState({
         name: '',
         category: 'Stationery',
         quantity: 1,
-        unit: 'Pieces',
-        pricePerUnit: ''
+        unit: 'pcs',
+        unit_price: ''
     });
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    React.useEffect(() => {
+        if (editingItem) {
+            setFormData({
+                name: editingItem.name,
+                category: editingItem.category,
+                quantity: editingItem.quantity,
+                unit: editingItem.unit || 'pcs',
+                unit_price: editingItem.unit_price || ''
+            });
+        } else {
+            setFormData({
+                name: '',
+                category: 'Stationery',
+                quantity: 1,
+                unit: 'pcs',
+                unit_price: ''
+            });
+        }
+    }, [editingItem, isOpen]);
 
-    const quantity = parseInt(formData.quantity) || 0;
-    const price = parseFloat(formData.pricePerUnit) || 0;
-    const totalValue = quantity * price;
+    if (!isOpen) return null;
 
-    let status = 'In Stock';
-    if (quantity <= 1) status = 'Critical';
-    else if (quantity >= 2 && quantity <= 5) status = 'Low Stock';
-
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
-        await onAdd(formData);
-        setIsSubmitting(false);
-        onClose();
+        onSave(formData);
     };
 
     return (
-        <div className="modal-overlay" style={{ zIndex: 1000 }}>
-            <div className="modal-content-box">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content glass" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2 className="text-xl font-bold text-slate-800" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Add New Stock Item</h2>
-                    <button onClick={onClose} className="icon-btn"><X size={20} /></button>
+                    <h2>{editingItem ? 'Edit Item' : '📦 New Inventory Item'}</h2>
+                    <button onClick={onClose} className="close-btn"><X size={20} /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="modal-body space-y-4 p-6" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>Item Name</label>
-                        <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #D1D5DB', borderRadius: '0.5rem' }} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Office Paper A4" />
+                <form onSubmit={handleSubmit} className="stock-form">
+                    <div className="form-group">
+                        <label>Item Name</label>
+                        <input 
+                            required 
+                            type="text" 
+                            placeholder="e.g. Blue Ink Pen" 
+                            value={formData.name} 
+                            onChange={e => setFormData({...formData, name: e.target.value})} 
+                        />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>Category</label>
-                        <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #D1D5DB', borderRadius: '0.5rem' }} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                            <option value="Stationery">Stationery</option>
-                            <option value="Electronics">Electronics</option>
-                            <option value="Furniture">Furniture</option>
-                            <option value="Office Supplies">Office Supplies</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div className="flex gap-4" style={{ display: 'flex', gap: '1rem' }}>
-                        <div className="flex-1" style={{ flex: 1 }}>
-                            <label className="block text-sm font-medium text-gray-700 mb-1" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>Quantity</label>
-                            <input required type="number" min="0" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #D1D5DB', borderRadius: '0.5rem' }} value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} />
-                        </div>
-                        <div className="flex-1" style={{ flex: 1 }}>
-                            <label className="block text-sm font-medium text-gray-700 mb-1" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>Unit Type</label>
-                            <select className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #D1D5DB', borderRadius: '0.5rem' }} value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })}>
-                                <option value="Pieces">Pieces</option>
-                                <option value="Reams">Reams</option>
-                                <option value="Units">Units</option>
-                                <option value="Cartridges">Cartridges</option>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Category</label>
+                            <select 
+                                value={formData.category} 
+                                onChange={e => setFormData({...formData, category: e.target.value})}
+                            >
+                                <option value="Stationery">Stationery</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Furniture">Furniture</option>
+                                <option value="Supplies">Supplies</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>Price per Unit (₹)</label>
-                        <input required type="number" min="0" step="0.01" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #D1D5DB', borderRadius: '0.5rem' }} value={formData.pricePerUnit} onChange={e => setFormData({ ...formData, pricePerUnit: e.target.value })} />
-                    </div>
-
-                    <div className="bg-gray-50 p-4 rounded-lg mt-4 space-y-2" style={{ backgroundColor: '#F9FAFB', padding: '1rem', borderRadius: '0.5rem', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div className="flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span className="text-gray-600 text-sm" style={{ color: '#4B5563', fontSize: '0.875rem' }}>Total Value:</span>
-                            <span className="font-bold text-gray-800" style={{ fontWeight: 700, color: '#1F2937' }}>₹{new Intl.NumberFormat('en-IN').format(totalValue)}</span>
-                        </div>
-                        <div className="flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span className="text-gray-600 text-sm" style={{ color: '#4B5563', fontSize: '0.875rem' }}>Status:</span>
-                            <span className={`stock-status status-${status.toLowerCase().replace(' ', '-')}`}>{status}</span>
+                        <div className="form-group">
+                            <label>Unit</label>
+                            <input 
+                                type="text" 
+                                placeholder="pcs / kg / reams" 
+                                value={formData.unit} 
+                                onChange={e => setFormData({...formData, unit: e.target.value})} 
+                            />
                         </div>
                     </div>
-
-                    <div className="flex justify-end gap-3 mt-6" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-                        <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition" style={{ padding: '0.5rem 1rem', border: '1px solid #E5E7EB', borderRadius: '0.5rem', cursor: 'pointer', backgroundColor: 'white' }}>Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition" disabled={isSubmitting} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '0.5rem', backgroundColor: '#2563EB', color: 'white', cursor: 'pointer' }}>
-                            {isSubmitting ? 'Adding...' : 'Add Item'}
-                        </button>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Initial Quantity</label>
+                            <input 
+                                required 
+                                type="number" 
+                                min="0" 
+                                value={formData.quantity} 
+                                onChange={e => setFormData({...formData, quantity: e.target.value})} 
+                                disabled={!!editingItem}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Price per Unit</label>
+                            <input 
+                                required 
+                                type="number" 
+                                step="0.01" 
+                                placeholder="0.00" 
+                                value={formData.unit_price} 
+                                onChange={e => setFormData({...formData, unit_price: e.target.value})} 
+                            />
+                        </div>
                     </div>
+                    <button type="submit" className="submit-btn">
+                        {editingItem ? 'Update Item' : 'Add to Inventory'}
+                    </button>
                 </form>
             </div>
         </div>
     );
 };
 
-const Stock = () => {
-    const queryClient = useQueryClient();
-    const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
-    const [showToast, setShowToast] = React.useState(false);
-
-
-    // Local state for search/filter (not server state)
-    const [searchQuery, setSearchQuery] = useState('');
-
-    const addItemMutation = useMutation({
-        mutationFn: addStockItem,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.stock.all });
-            setShowToast(true);
-            setTimeout(() => setShowToast(false), 3000);
-        },
+const HistoryPanel = ({ item, isOpen, onClose }) => {
+    const { data: history = [], isLoading } = useQuery({
+        queryKey: ['stock-history', item?.id],
+        queryFn: () => fetchStockHistory(item.id),
+        enabled: !!item && isOpen
     });
 
-    const handleAddItem = async (newItem) => {
-        // Map frontend field names to backend expected names
-        const payload = {
-            name: newItem.name,
-            category: newItem.category,
-            quantity: parseInt(newItem.quantity),
-            unit: newItem.unit,
-            unit_price: parseFloat(newItem.pricePerUnit)
-        };
-        await addItemMutation.mutateAsync(payload);
-    };
-
-    // ---------------------------------------------------------------------------
-    // React Query: Fetch Stock Items
-    // ---------------------------------------------------------------------------
-    const {
-        data: items = [],
-        isLoading: isLoadingItems,
-        isError: isItemsError,
-        error: itemsError,
-        refetch: refetchItems,
-    } = useQuery({
-        queryKey: queryKeys.stock.list({ search: searchQuery }),
-        queryFn: () => fetchStockItems({ search: searchQuery }),
-        // Keep previous data while fetching new data (smooth UX during search)
-        placeholderData: (previousData) => previousData,
-    });
-
-    // ---------------------------------------------------------------------------
-    // React Query: Fetch Stock Stats
-    // ---------------------------------------------------------------------------
-    const {
-        data: stats,
-        isLoading: isLoadingStats,
-    } = useQuery({
-        queryKey: queryKeys.stock.stats(),
-        queryFn: fetchStockStats,
-    });
-
-    // ---------------------------------------------------------------------------
-    // Event Handlers
-    // ---------------------------------------------------------------------------
-
-    const handleSearchChange = (e) => {
-        setSearchQuery(e.target.value);
-    };
-
-    // ---------------------------------------------------------------------------
-    // Render
-    // ---------------------------------------------------------------------------
+    if (!isOpen) return null;
 
     return (
-        <>
-            <AddItemModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddItem} />
-
-            {showToast && (
-                <div className="toast-notification animate-slide-up">
-                    <CheckCircle2 size={20} className="text-green-500" style={{ color: '#10B981' }} />
-                    <span>Item added successfully</span>
+        <div className="side-panel-overlay" onClick={onClose}>
+            <div className="side-panel" onClick={e => e.stopPropagation()}>
+                <div className="panel-header">
+                    <div>
+                        <h3>Activity Log</h3>
+                        <p>{item?.name}</p>
+                    </div>
+                    <button onClick={onClose} className="close-btn"><X size={20} /></button>
                 </div>
-            )}
-
-            <div className="dashboard-header" style={{ justifyContent: 'flex-end' }}>
-                <div className="header-actions">
-                    <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>
-                        <Plus size={16} />
-                        <span>Add Item</span>
-                    </button>
+                <div className="panel-body">
+                    {isLoading ? (
+                        <div className="panel-loading"><Loader2 size={24} className="spin" /></div>
+                    ) : history.length === 0 ? (
+                        <div className="panel-empty">No transactions found for this item.</div>
+                    ) : (
+                        <div className="history-list">
+                            {history.map(tx => (
+                                <div key={tx.id} className="history-item">
+                                    <div className={`tx-icon ${tx.type}`}>
+                                        {tx.type === 'in' ? <Plus size={14} /> : <Minus size={14} />}
+                                    </div>
+                                    <div className="tx-details">
+                                        <div className="tx-main">
+                                            <span className="tx-type">{tx.type === 'in' ? 'Stock Added' : 'Stock Used'}</span>
+                                            <span className="tx-qty">{tx.quantity} units</span>
+                                        </div>
+                                        <span className="tx-date">{new Date(tx.created_at).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
+        </div>
+    );
+};
 
-            <div className="content-wrapper">
-                {/* Stats Row */}
-                <div className="stock-stats-grid">
-                    <div className="stat-card">
-                        <div className="stat-label">Total Value</div>
-                        <div className="stat-value">
-                            {isLoadingStats ? '...' : `₹${stats?.totalValue || '0'}`}
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-label">Total Items</div>
-                        <div className="stat-value">
-                            {isLoadingStats ? '...' : stats?.totalItems || 0}
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-label">Low Stock</div>
-                        <div className="stat-value warning">
-                            {isLoadingStats ? '...' : stats?.lowStockCount || 0}
-                        </div>
-                    </div>
-                </div>
+// ---------------------------------------------------------------------------
+// Main Dashboard
+// ---------------------------------------------------------------------------
 
-                {/* Filters & Search */}
-                <div className="controls-bar">
-                    <div className="search-wrapper">
-                        <Search size={18} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search assets..."
-                            className="search-input"
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="icon-btn" title="Filter"><Filter size={20} /></button>
-                    </div>
-                </div>
+const Stock = () => {
+    const queryClient = useQueryClient();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+    const [historyItem, setHistoryItem] = useState(null);
 
-                {/* Stock List */}
-                <div className="stock-list-container">
-                    <div className="stock-list-header">
-                        <div>Item Name</div>
-                        <div>Quantity</div>
-                        <div>Value</div>
-                        <div>Status</div>
-                    </div>
-                    <div className="stock-list-body">
-                        {/* Loading State */}
-                        {isLoadingItems && items.length === 0 && (
-                            <StockListLoading />
-                        )}
+    // Queries
+    const { data: items = [], isLoading } = useQuery({
+        queryKey: ['stock', searchQuery, selectedCategory],
+        queryFn: () => fetchStockItems({ 
+            search: searchQuery, 
+            category: selectedCategory === 'All' ? undefined : selectedCategory 
+        })
+    });
 
-                        {/* Error State */}
-                        {isItemsError && (
-                            <ErrorState
-                                title="Failed to load stock"
-                                message={itemsError?.message}
-                                onRetry={refetchItems}
-                            />
-                        )}
+    const { data: stats } = useQuery({
+        queryKey: ['stock-stats'],
+        queryFn: fetchStockStats
+    });
 
-                        {/* Empty State */}
-                        {!isLoadingItems && !isItemsError && items.length === 0 && (
-                            <EmptyState
-                                title="No stock items found"
-                                description="Try adjusting your search or filters."
-                            />
-                        )}
+    // Mutations
+    const addMutation = useMutation({
+        mutationFn: addStockItem,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stock'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-stats'] });
+            setIsAddModalOpen(false);
+        }
+    });
 
-                        {/* Data */}
-                        {items.map(item => (
-                            <StockItem key={item.id} {...item} />
-                        ))}
-                    </div>
-                </div>
-            </div>
+    const adjustMutation = useMutation({
+        mutationFn: ({ id, delta }) => adjustStockQuantity(id, delta),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stock'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-stats'] });
+        }
+    });
 
+    const deleteMutation = useMutation({
+        mutationFn: deleteStockItem,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stock'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-stats'] });
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => updateStockItem(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stock'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-stats'] });
+            setIsAddModalOpen(false);
+            setEditingItem(null);
+        }
+    });
+
+    const handleSave = (data) => {
+        const payload = {
+            ...data,
+            quantity: Number(data.quantity),
+            unit_price: Number(data.unit_price)
+        };
+
+        if (editingItem) {
+            updateMutation.mutate({ id: editingItem.id, data: payload });
+        } else {
+            addMutation.mutate(payload);
+        }
+    };
+
+    const handleAdjust = (id, delta) => {
+        adjustMutation.mutate({ id, delta });
+    };
+
+    const handleDelete = (id) => {
+        deleteMutation.mutate(id);
+    };
+
+    return (
+        <div className="stock-dashboard">
             <style>{`
-                .stock-stats-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 1.5rem;
-                    margin-bottom: 2rem;
+                .stock-dashboard {
+                    padding: 2rem;
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    font-family: 'Inter', -apple-system, sans-serif;
+                    background-color: #F8FAFC;
+                    min-height: 100vh;
                 }
-                .stat-card {
+
+                /* Header */
+                .dashboard-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    margin-bottom: 2.5rem;
+                }
+                .header-titles h1 {
+                    font-size: 2.5rem;
+                    font-weight: 900;
+                    letter-spacing: -1.5px;
+                    margin: 0;
+                    color: #0F172A;
+                }
+                .header-titles p {
+                    color: #64748B;
+                    font-weight: 600;
+                    margin-top: 0.5rem;
+                }
+                .header-actions {
+                    display: flex;
+                    gap: 1rem;
+                    background: white;
+                    padding: 0.5rem;
+                    border-radius: 20px;
+                    border: 1px solid #F1F5F9;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                }
+
+                /* Stats Bar */
+                .stats-bar {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 1.5rem;
+                    margin-bottom: 3rem;
+                }
+                .stat-card-mini {
                     background: white;
                     padding: 1.5rem;
-                    border-radius: 12px;
-                    border: 1px solid var(--border-color);
+                    border-radius: 24px;
+                    border: 1px solid #F1F5F9;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    display: flex;
+                    align-items: center;
+                    gap: 1.25rem;
                 }
-                .stat-label { color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
-                .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 0.5rem; }
-                .stat-value.warning { color: #EAB308; }
+                .stat-icon {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .stat-icon.blue { background: #EFF6FF; color: #3B82F6; }
+                .stat-icon.green { background: #F0FDF4; color: #22C55E; }
+                .stat-icon.amber { background: #FFFBEB; color: #F59E0B; }
+                .stat-icon.purple { background: #FAF5FF; color: #A855F7; }
+                .stat-info .label { font-size: 11px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; }
+                .stat-info .value { font-size: 1.25rem; font-weight: 800; color: #0F172A; margin: 0; }
 
-                .search-wrapper {
-                    position: relative;
-                    flex: 1;
-                    max-width: 400px;
+                /* Search & Filters */
+                .filters-bar {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                    gap: 1.5rem;
                 }
-                .search-icon {
+                .search-box {
+                    flex: 1;
+                    max-width: 500px;
+                    position: relative;
+                }
+                .search-box svg {
                     position: absolute;
-                    left: 12px;
+                    left: 1rem;
                     top: 50%;
                     transform: translateY(-50%);
-                    color: var(--text-muted);
+                    color: #94A3B8;
                 }
-                .search-input {
+                .search-box input {
                     width: 100%;
-                    padding: 0.6rem 1rem 0.6rem 2.5rem;
-                    border: 1px solid var(--border-color);
-                    border-radius: 8px;
-                    outline: none;
-                    font-size: 0.9rem;
-                }
-                .search-input:focus { border-color: var(--primary); }
-
-                .stock-list-container {
+                    padding: 1rem 1rem 1rem 3rem;
                     background: white;
-                    border: 1px solid var(--border-color);
-                    border-radius: 12px;
+                    border: 1px solid #F1F5F9;
+                    border-radius: 18px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    outline: none;
+                    transition: all 0.2s;
+                }
+                .search-box input:focus { border-color: #3B82F6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.05); }
+
+                .category-filters {
+                    display: flex;
+                    gap: 0.5rem;
+                }
+                .cat-btn {
+                    padding: 0.75rem 1.25rem;
+                    background: white;
+                    border: 1px solid #F1F5F9;
+                    border-radius: 14px;
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: #64748B;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .cat-btn.active { background: #0F172A; color: white; border-color: #0F172A; }
+                .cat-btn:hover:not(.active) { background: #F8FAFC; color: #0F172A; }
+
+                /* Inventory List */
+                .inventory-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+                    gap: 1.5rem;
+                }
+                .stock-card {
+                    background: white;
+                    border-radius: 28px;
                     overflow: hidden;
+                    border: 1px solid #F1F5F9;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
                 }
-                .stock-list-header {
-                    display: grid;
-                    grid-template-columns: 2fr 1fr 1fr 1fr;
-                    padding: 1rem 1.5rem;
-                    background: #F8FAFC;
-                    border-bottom: 1px solid var(--border-color);
-                    font-weight: 600;
-                    font-size: 0.875rem;
-                    color: var(--text-muted);
+                .stock-card:hover {
+                    transform: translateY(-8px);
+                    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+                    border-color: #3B82F6;
                 }
-                .stock-item-row {
-                    display: grid;
-                    grid-template-columns: 2fr 1fr 1fr 1fr;
-                    padding: 1rem 1.5rem;
-                    border-bottom: 1px solid var(--border-color);
+                .card-accent {
+                    height: 4px;
+                    width: 100%;
+                }
+                .card-main {
+                    padding: 1.75rem;
+                }
+                .item-identity {
+                    display: flex;
                     align-items: center;
-                    transition: background 0.1s;
+                    gap: 1rem;
+                    margin-bottom: 1.75rem;
                 }
-                .stock-item-row:hover { background: #F8FAFC; }
-                .stock-item-row:last-child { border-bottom: none; }
+                .item-icon-box {
+                    width: 50px;
+                    height: 50px;
+                    background: #F8FAFC;
+                    border-radius: 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .item-details h3 {
+                    margin: 0;
+                    font-size: 1.15rem;
+                    font-weight: 800;
+                    color: #0F172A;
+                }
+                .category-tag {
+                    font-size: 10px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #94A3B8;
+                }
 
-                .stock-info { display: flex; align-items: center; gap: 1rem; }
-                .stock-icon {
-                    width: 48px; height: 48px;
-                    background: #F1F5F9;
-                    border-radius: 12px;
-                    display: flex; align-items: center; justify-content: center;
-                    color: var(--text-muted);
-                    flex-shrink: 0;
+                .item-inventory {
+                    background: #F8FAFC;
+                    padding: 1.25rem;
+                    border-radius: 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1.5rem;
                 }
-                .stock-name { font-weight: 500; color: var(--text-main); }
-                .stock-category { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+                .qty-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+                .qty-btn {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 10px;
+                    border: none;
+                    background: white;
+                    color: #0F172A;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                    transition: all 0.2s;
+                }
+                .qty-btn:hover:not(:disabled) { background: #0F172A; color: white; }
+                .qty-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+                .qty-display {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    min-width: 60px;
+                }
+                .qty-num { font-size: 1.5rem; font-weight: 900; color: #0F172A; line-height: 1; }
+                .qty-label { font-size: 10px; font-weight: 700; color: #94A3B8; margin-top: 2px; }
+
+                .low-stock-warning {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    background: #FEE2E2;
+                    color: #EF4444;
+                    padding: 4px 10px;
+                    border-radius: 8px;
+                    font-size: 11px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                }
+
+                .item-actions {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .price-info {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .price-label { font-size: 10px; font-weight: 800; color: #94A3B8; text-transform: uppercase; }
+                .price-val { font-size: 1.15rem; font-weight: 800; color: #0F172A; }
+
+                .action-row { display: flex; gap: 0.5rem; }
+                .action-icon-btn {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    border: 1px solid #F1F5F9;
+                    background: white;
+                    color: #64748B;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .action-icon-btn:hover { background: #F8FAFC; color: #3B82F6; border-color: #3B82F6; }
+                .action-icon-btn.delete:hover { background: #FEE2E2; color: #EF4444; border-color: #EF4444; }
+
+                /* Modal & Side Panel */
+                .modal-overlay, .side-panel-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(8px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+                .modal-content {
+                    width: 100%;
+                    max-width: 500px;
+                    padding: 2.5rem;
+                    border-radius: 32px;
+                    background: white;
+                    box-shadow: 0 30px 60px -12px rgba(0,0,0,0.1);
+                }
+                .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+                .modal-header h2 { font-size: 1.5rem; font-weight: 900; margin: 0; }
+                .close-btn { background: #F1F5F9; border: none; color: #64748B; cursor: pointer; padding: 8px; border-radius: 12px; }
                 
-                .stock-quantity { display: flex; flex-direction: column; }
-                .qty-value { font-weight: 600; color: var(--text-main); }
-                .qty-unit { font-size: 0.75rem; color: var(--text-muted); }
-                
-                .stock-value { font-family: monospace; font-weight: 600; color: var(--text-main); }
-
-                .stock-status {
-                    display: inline-flex;
-                    padding: 0.25rem 0.75rem;
-                    border-radius: 9999px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    width: fit-content;
-                }
-                .status-in-stock { background: #DCFCE7; color: #166534; }
-                .status-low-stock { background: #FEF9C3; color: #854D0E; }
-                .status-in-use { background: #DBEAFE; color: #1E40AF; }
-
-                /* Loading State */
-                .stock-loading-state {
+                /* Delete Overlay */
+                .delete-confirm-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(255,255,255,0.9);
+                    backdrop-filter: blur(4px);
+                    z-index: 10;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    padding: 3rem 1.5rem;
-                    color: var(--text-muted);
-                    text-align: center;
                     gap: 1rem;
+                    padding: 1rem;
+                    text-align: center;
+                    animation: fadeIn 0.2s ease-out;
                 }
-
-                .loading-spinner {
-                    animation: spin 1s linear infinite;
-                    color: var(--primary);
-                }
-
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-
-                .btn-secondary {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    padding: 0.5rem 1rem;
-                    background: #F1F5F9;
-                    border: 1px solid var(--border-color);
-                    border-radius: 8px;
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    color: var(--text-main);
+                .delete-confirm-overlay p { font-weight: 800; color: #0F172A; margin: 0; }
+                .confirm-actions { display: flex; gap: 0.75rem; }
+                .confirm-btn {
+                    padding: 8px 20px;
+                    border-radius: 10px;
+                    font-weight: 700;
+                    font-size: 13px;
                     cursor: pointer;
-                    transition: all 0.15s ease;
+                    border: none;
+                    transition: all 0.2s;
                 }
-                .btn-secondary:hover {
-                    background: #E2E8F0;
-                    border-color: #CBD5E1;
+                .confirm-btn.yes { background: #EF4444; color: white; }
+                .confirm-btn.yes:hover { background: #DC2626; }
+                .confirm-btn.no { background: #F1F5F9; color: #64748B; }
+                .confirm-btn.no:hover { background: #E2E8F0; }
+
+                .stock-form { display: flex; flex-direction: column; gap: 1.5rem; }
+                .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+                .form-group label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748B; letter-spacing: 1px; }
+                .form-group input, .form-group select {
+                    background: #F8FAFC;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 14px;
+                    padding: 12px 16px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    outline: none;
                 }
-
-                /* Mobile Responsiveness for Stock List */
-                @media (max-width: 768px) {
-                    .stock-list-header { display: none; }
-                    
-                    .stock-item-row {
-                        grid-template-columns: 1fr;
-                        gap: 1rem;
-                        padding: 1rem;
-                        align-items: flex-start;
-                        position: relative;
-                    }
-
-                    .stock-info {
-                        width: 100%;
-                    }
-
-                    .stock-quantity, .stock-value, .stock-status {
-                        display: flex;
-                        align-items: center;
-                        gap: 0.5rem;
-                        font-size: 0.9rem;
-                    }
-
-                    .stock-quantity::before { content: 'Qty:'; color: var(--text-muted); font-size: 0.8rem; }
-                    .stock-value::before { content: 'Value:'; color: var(--text-muted); font-size: 0.8rem; }
-                    
-                    /* Adjust stats grid for mobile */
-                    .stock-stats-grid {
-                        grid-template-columns: 1fr;
-                        gap: 1rem;
-                    }
-                    
-                    /* Controls bar */
-                    .controls-bar {
-                        flex-direction: column;
-                        align-items: stretch;
-                        gap: 1rem;
-                    }
-                    .search-wrapper { max-width: 100%; }
+                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+                .submit-btn {
+                    margin-top: 1rem;
+                    background: #0F172A;
+                    color: white;
+                    border: none;
+                    padding: 18px;
+                    border-radius: 18px;
+                    font-weight: 800;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
                 }
+                .submit-btn:hover { transform: translateY(-2px); background: #2563EB; }
 
-                /* Modal Styles */
-                .modal-overlay {
-                    position: fixed;
-                top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
-                animation: fadeIn 0.2s;
-                }
-                .modal-content-box {
+                .side-panel {
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 400px;
                     background: white;
-                border-radius: 12px;
-                width: 100%;
-                max-width: 500px;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-                animation: scaleUp 0.3s ease-out;
+                    box-shadow: -20px 0 50px rgba(0,0,0,0.1);
+                    display: flex;
+                    flex-direction: column;
+                    animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
                 }
-                .modal-header {
-                    padding: 1.5rem;
-                border-bottom: 1px solid var(--border-color);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+                
+                .panel-header { padding: 2rem; border-bottom: 1px solid #F1F5F9; display: flex; justify-content: space-between; align-items: center; }
+                .panel-header h3 { font-size: 1.25rem; font-weight: 900; margin: 0; }
+                .panel-header p { font-size: 13px; color: #64748B; margin: 4px 0 0; font-weight: 600; }
+                
+                .panel-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+                .history-list { display: flex; flex-direction: column; gap: 1rem; }
+                .history-item {
+                    display: flex;
+                    gap: 1rem;
+                    padding: 1rem;
+                    background: #F8FAFC;
+                    border-radius: 16px;
                 }
+                .tx-icon {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .tx-icon.in { background: #DCFCE7; color: #22C55E; }
+                .tx-icon.out { background: #FEE2E2; color: #EF4444; }
+                .tx-details { flex: 1; }
+                .tx-main { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                .tx-type { font-size: 13px; font-weight: 800; color: #0F172A; }
+                .tx-qty { font-size: 13px; font-weight: 800; }
+                .tx-date { font-size: 11px; font-weight: 600; color: #94A3B8; }
 
-                /* Toast Styles */
-                .toast-notification {
-                    position: fixed;
-                bottom: 24px;
-                right: 24px;
-                background: white;
-                border-left: 4px solid #10B981;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                z-index: 1100;
-                font-weight: 500;
-                }
-                .animate-slide-up {
-                    animation: slideUp 0.3s ease-out;
-                }
+                .loading-overlay { height: 60vh; display: flex; align-items: center; justify-content: center; width: 100%; }
+                .spin { animation: spin 1s linear infinite; }
+                @keyframes spin { to { transform: rotate(360deg); } }
 
-                @keyframes fadeIn {from {opacity: 0; } to {opacity: 1; } }
-                @keyframes scaleUp {from {transform: scale(0.95); opacity: 0; } to {transform: scale(1); opacity: 1; } }
-                @keyframes slideUp {from {transform: translateY(20px); opacity: 0; } to {transform: translateY(0); opacity: 1; } }
-                @keyframes fadeInRow {from {transform: translateX(-10px); opacity: 0; } to {transform: translateX(0); opacity: 1; } }
-
-                .status-critical {background: #FEE2E2; color: #991B1B; }
+                .action-btn-primary { 
+                    background: linear-gradient(135deg, #0F172A, #334155); 
+                    color: white; 
+                    border: none; 
+                    padding: 12px 24px; 
+                    border-radius: 14px; 
+                    font-weight: 700; 
+                    display: flex; 
+                    align-items: center; 
+                    gap: 0.5rem; 
+                    cursor: pointer; 
+                    transition: all 0.2s; 
+                }
+                .action-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
             `}</style>
-        </>
+
+            <AddItemModal 
+                isOpen={isAddModalOpen} 
+                onClose={() => {setIsAddModalOpen(false); setEditingItem(null);}} 
+                onSave={handleSave} 
+                editingItem={editingItem}
+            />
+
+            <HistoryPanel 
+                item={historyItem} 
+                isOpen={!!historyItem} 
+                onClose={() => setHistoryItem(null)} 
+            />
+
+            <header className="dashboard-header">
+                <div className="header-titles">
+                    <h1>Inventory <span style={{color: '#3B82F6'}}>Command Center</span></h1>
+                    <p>Track assets, monitor stock levels, and manage fulfillment.</p>
+                </div>
+                <div className="header-actions">
+                    <button className="action-btn-primary" onClick={() => setIsAddModalOpen(true)}>
+                        <Plus size={18} /> Add New Item
+                    </button>
+                    <button className="cat-btn" style={{padding: '12px'}} onClick={() => queryClient.invalidateQueries({queryKey: ['stock']})}>
+                        <TrendingUp size={18} />
+                    </button>
+                </div>
+            </header>
+
+            <section className="stats-bar">
+                <div className="stat-card-mini">
+                    <div className="stat-icon blue"><Package size={24} /></div>
+                    <div className="stat-info">
+                        <span className="label">Total Items</span>
+                        <p className="value">{stats?.totalItems || 0}</p>
+                    </div>
+                </div>
+                <div className="stat-card-mini">
+                    <div className="stat-icon green"><TrendingUp size={24} /></div>
+                    <div className="stat-info">
+                        <span className="label">Inventory Value</span>
+                        <p className="value">{formatCurrency(stats?.totalValue || 0)}</p>
+                    </div>
+                </div>
+                <div className="stat-card-mini">
+                    <div className="stat-icon amber"><AlertCircle size={24} /></div>
+                    <div className="stat-info">
+                        <span className="label">Low Stock</span>
+                        <p className="value">{stats?.lowStockCount || 0}</p>
+                    </div>
+                </div>
+                <div className="stat-card-mini">
+                    <div className="stat-icon purple"><ShoppingCart size={24} /></div>
+                    <div className="stat-info">
+                        <span className="label">Categories</span>
+                        <p className="value">{stats?.categories?.length || 0}</p>
+                    </div>
+                </div>
+            </section>
+
+            <div className="filters-bar">
+                <div className="search-box">
+                    <Search size={20} />
+                    <input 
+                        type="text" 
+                        placeholder="Search items by name or SKU..." 
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <div className="category-filters">
+                    {['All', 'Stationery', 'Electronics', 'Furniture', 'Supplies'].map(cat => (
+                        <button 
+                            key={cat} 
+                            className={`cat-btn ${selectedCategory === cat ? 'active' : ''}`}
+                            onClick={() => setSelectedCategory(cat)}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {isLoading ? (
+                <div className="loading-overlay">
+                    <Loader2 size={40} className="spin text-blue-500" />
+                </div>
+            ) : items.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '5rem', background: 'white', borderRadius: '32px' }}>
+                    <Box size={60} style={{ color: '#E2E8F0', marginBottom: '1.5rem' }} />
+                    <h2 style={{ fontWeight: 800 }}>No Inventory Found</h2>
+                    <p style={{ color: '#64748B' }}>Your search didn't return any results.</p>
+                </div>
+            ) : (
+                <div className="inventory-grid">
+                    {items.map(item => (
+                        <StockItem 
+                            key={item.id} 
+                            item={item} 
+                            onAdjust={handleAdjust}
+                            onDelete={handleDelete}
+                            onEdit={(it) => { setEditingItem(it); setIsAddModalOpen(true); }}
+                            onViewHistory={(it) => setHistoryItem(it)}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
     );
 };
 

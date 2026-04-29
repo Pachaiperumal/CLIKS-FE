@@ -1,22 +1,48 @@
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financialPlanService } from '../../services';
+import { 
+    Plus, 
+    DollarSign, 
+    TrendingUp, 
+    Wallet, 
+    Search, 
+    Filter, 
+    ChevronDown, 
+    Edit, 
+    Trash2, 
+    X 
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { EmptyState } from '../../components/common';
 import './financial-plan.css';
 
 const EMPTY_FORM = { item: '', category: '', estimatedCost: '', plannedMonth: '' };
-const DEFAULT_PLAN_ID = 1;
-
 const PlanExpense = () => {
     const queryClient = useQueryClient();
+
+    // 1. Fetch available plans
+    const { data: plans = [], isLoading: plansLoading } = useQuery({
+        queryKey: ['financial-plans'],
+        queryFn: async () => {
+            const res = await financialPlanService.getPlans();
+            return res.data || res;
+        }
+    });
+
+    const activePlanId = plans.length > 0 ? plans[0].id : null;
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData]       = useState(EMPTY_FORM);
     const [formError, setFormError]     = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Fetch Expenses
-    const { data: plannedExpenses = [], isLoading } = useQuery({
-        queryKey: ['plan-expenses', DEFAULT_PLAN_ID],
+    const { data: plannedExpenses = [], isLoading: expensesLoading } = useQuery({
+        queryKey: ['plan-expenses', activePlanId],
         queryFn: async () => {
-            const data = await financialPlanService.getPlanExpenses(DEFAULT_PLAN_ID);
+            if (!activePlanId) return [];
+            const data = await financialPlanService.getPlanExpenses(activePlanId);
             return data.map(item => ({
                 id: item.id,
                 item: item.item || item.title,
@@ -24,14 +50,15 @@ const PlanExpense = () => {
                 estimatedCost: parseFloat(item.amount || item.estimated_cost),
                 plannedMonth: item.date || item.planned_month
             }));
-        }
+        },
+        enabled: !!activePlanId
     });
 
     // Create Mutation
     const createMutation = useMutation({
-        mutationFn: (newExpense) => financialPlanService.createPlanExpense(DEFAULT_PLAN_ID, newExpense),
+        mutationFn: (newExpense) => financialPlanService.createPlanExpense(activePlanId, newExpense),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['plan-expenses', DEFAULT_PLAN_ID] });
+            queryClient.invalidateQueries({ queryKey: ['plan-expenses', activePlanId] });
             closeModal();
         },
         onError: (err) => {
@@ -41,11 +68,14 @@ const PlanExpense = () => {
 
     // Delete Mutation
     const deleteMutation = useMutation({
-        mutationFn: (id) => financialPlanService.deletePlanExpense(DEFAULT_PLAN_ID, id),
+        mutationFn: (id) => financialPlanService.deletePlanExpense(activePlanId, id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['plan-expenses', DEFAULT_PLAN_ID] });
+            queryClient.invalidateQueries({ queryKey: ['plan-expenses', activePlanId] });
         }
     });
+
+    const isLoading = plansLoading || (activePlanId && expensesLoading);
+
 
     const openModal = () => {
         setFormData(EMPTY_FORM);

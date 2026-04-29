@@ -1,5 +1,13 @@
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financialPlanService } from '../../services';
+import { 
+    ChevronLeft, 
+    ChevronRight, 
+    Calendar, 
+    Clock, 
+    MoreHorizontal 
+} from 'lucide-react';
 import '../../App.css';
 
 const FinancialCalendar = () => {
@@ -120,3 +128,4 @@ const FinancialCalendar = () => {
 };
 
 export default FinancialCalendar;
+

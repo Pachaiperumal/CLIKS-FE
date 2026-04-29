@@ -24,7 +24,7 @@ import { formatCurrency } from '../../lib/formatCurrency';
 import AnalyticsSection from '../../components/AnalyticsSection';
 import BudgetMixTile from '../../components/dashboard/BudgetMixTile';
 import SplitBillsTile from '../../components/dashboard/SplitBillsTile';
-import TheSquadTile from '../../components/dashboard/TheSquadTile';
+
 import MarketPulseTile from '../../components/dashboard/MarketPulseTile';
 import MoneyGoalsTile from '../../components/dashboard/MoneyGoalsTile';
 
@@ -296,7 +296,7 @@ const BooksDashboard = () => {
         select: (res) => res.data
     });
 
-    const [activeWidgets, setActiveWidgets] = useState(['market', 'budget', 'goals', 'split', 'squad']);
+    const [activeWidgets, setActiveWidgets] = useState(['market', 'budget', 'goals', 'split']);
     const [isAddWidgetOpen, setIsAddWidgetOpen] = useState(false);
     const [widgetToRemove, setWidgetToRemove] = useState(null);
 
@@ -329,13 +329,7 @@ const BooksDashboard = () => {
             className: '',
             style: { gridColumn: 'span 1', gridRow: 'span 1' }
         },
-        {
-            id: 'squad',
-            title: 'Financial Contacts',
-            icon: null,
-            className: '',
-            style: { gridColumn: 'span 1', gridRow: 'span 1' }
-        },
+
         {
             id: 'overview',
             title: 'Financial Overview',
@@ -461,8 +455,7 @@ const BooksDashboard = () => {
                 return <BudgetMixTile />;
             case 'split':
                 return <SplitBillsTile />;
-            case 'squad':
-                return <TheSquadTile />;
+
             default:
                 return null;
         }
