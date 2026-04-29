@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileService, accountsService } from '../services';
 import Topbar from '../components/Topbar';
@@ -38,7 +40,7 @@ const Profile = () => {
     });
 
     // Fetch Summary
-    const { data: summary = {}, isLoading: isSummaryLoading } = useQuery({
+    const { data: summary = {} } = useQuery({
         queryKey: ['account-summary'],
         queryFn: async () => {
             // Simplified summary for profile view

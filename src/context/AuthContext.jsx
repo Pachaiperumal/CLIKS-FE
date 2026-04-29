@@ -10,6 +10,14 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const queryClient = useQueryClient();
 
+    const logout = React.useCallback(() => {
+        localStorage.removeItem('books_auth_token');
+        setToken(null);
+        setUser(null);
+        // Clear query cache to prevent User B from seeing User A's cached data
+        queryClient.clear();
+    }, [queryClient]);
+
     useEffect(() => {
         const initAuth = async () => {
             if (token) {
@@ -30,7 +38,7 @@ export const AuthProvider = ({ children }) => {
         } else {
             setLoading(false);
         }
-    }, [token]);
+    }, [token, logout]);
 
     const login = async (username, password) => {
         const data = await authService.login(username, password);
@@ -60,14 +68,6 @@ export const AuthProvider = ({ children }) => {
         queryClient.invalidateQueries();
 
         return data;
-    };
-
-    const logout = () => {
-        localStorage.removeItem('books_auth_token');
-        setToken(null);
-        setUser(null);
-        // Clear query cache to prevent User B from seeing User A's cached data
-        queryClient.clear();
     };
 
     const value = {

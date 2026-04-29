@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '../services';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -39,41 +40,6 @@ const Settings = () => {
     const handleSave = () => {
         mutation.mutate(localSettings);
     };
-
-    const SettingSection = ({ title, icon: Icon, children }) => (
-        <div style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                <div style={{ padding: '0.5rem', background: '#DBEAFE', borderRadius: '8px', color: 'var(--primary)' }}>
-                    <Icon size={20} />
-                </div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>{title}</h2>
-            </div>
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                {children}
-            </div>
-        </div>
-    );
-
-    const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '1.25rem 1.5rem',
-            borderBottom: last ? 'none' : '1px solid #F1F5F9'
-        }}>
-            <div style={{ marginRight: '1rem' }}>
-                <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>{label}</div>
-                <div style={{ fontSize: '0.85rem', color: '#64748B' }}>{description}</div>
-            </div>
-            <Toggle
-                checked={isToggled}
-                onChange={onToggle}
-                size="md"
-                aria-label={label}
-            />
-        </div>
-    );
 
     if (isLoading) {
         return (
@@ -171,5 +137,39 @@ const Settings = () => {
         </div>
     );
 };
+const SettingSection = ({ title, icon: Icon, children }) => (
+    <div style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ padding: '0.5rem', background: '#DBEAFE', borderRadius: '8px', color: 'var(--primary)' }}>
+                <Icon size={20} />
+            </div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>{title}</h2>
+        </div>
+        <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            {children}
+        </div>
+    </div>
+);
+
+const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+    <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '1.25rem 1.5rem',
+        borderBottom: last ? 'none' : '1px solid #F1F5F9'
+    }}>
+        <div style={{ marginRight: '1rem' }}>
+            <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>{label}</div>
+            <div style={{ fontSize: '0.85rem', color: '#64748B' }}>{description}</div>
+        </div>
+        <Toggle
+            checked={isToggled}
+            onChange={onToggle}
+            size="md"
+            aria-label={label}
+        />
+    </div>
+);
 
 export default Settings;

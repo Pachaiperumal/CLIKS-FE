@@ -78,7 +78,8 @@ const Transactions = () => {
                 category: tx.category,
                 amount: parseFloat(tx.amount),
                 date: tx.date || tx.created_at,
-                notes: tx.notes
+                notes: tx.notes,
+                pct: Math.floor(Math.random() * 70) + 20
             }));
         }
     });
@@ -262,7 +263,6 @@ const Transactions = () => {
                         <tbody>
                             {filtered.map((item) => {
                                 const ItemIcon = getIcon(item.category);
-                                const pct = Math.floor(Math.random() * 70) + 20;
                                 return (
                                     <tr key={item.id} className="table-row-card">
                                         <td><div className="custom-checkbox" /></td>
@@ -278,10 +278,10 @@ const Transactions = () => {
                                                 <div className="progress-track">
                                                     <div
                                                         className="progress-fill"
-                                                        style={{ width: `${pct}%`, background: item.type === 'Income' ? '#4F46E5' : '#10B981' }}
+                                                        style={{ width: `${item.pct}%`, background: item.type === 'Income' ? '#4F46E5' : '#10B981' }}
                                                     />
                                                 </div>
-                                                <span className="rate-text">{pct}%</span>
+                                                <span className="rate-text">{item.pct}%</span>
                                             </div>
                                         </td>
                                         <td className="profit-col">

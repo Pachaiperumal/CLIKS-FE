@@ -1,30 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
     Plus,
     Minus,
-    ShoppingCart,
     Home,
-    MonitorPlay,
     Zap,
-    Utensils,
     Briefcase,
     TrendingUp,
     TrendingDown,
     ArrowLeftRight,
     X,
-    Activity,
     PieChart,
     Calendar,
     Wallet,
     CreditCard,
     BarChart3,
+    Activity,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     accountsService, 
     transactionsService, 
-    homeService, 
     plannedPaymentsService 
 } from '../services';
 import '../App.css';
@@ -69,7 +65,7 @@ const MODAL_ANIM = {
 // ─────────────────────────────────────────────
 //  Small helper widgets rendered dynamically
 // ─────────────────────────────────────────────
-const SpendingChart = ({ records }) => {
+const SpendingChart = () => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const base  = [45, 30, 60, 20, 80, 55, 35];
     const max   = Math.max(...base);
@@ -110,6 +106,41 @@ const AccountsSummary = () => {
     );
 };
 
+const UpcomingBillsWidget = () => {
+    const { data: bills = [], isLoading: billsLoading } = useQuery({
+        queryKey: ['planned-payments'],
+        queryFn: plannedPaymentsService.getPlannedPayments
+    });
+
+    if (billsLoading) return <p className="fd-entry-sub">Loading bills...</p>;
+    
+    return (
+        <div className="bills-list">
+            {bills.length === 0 ? (
+                <p className="fd-entry-sub">No upcoming bills found.</p>
+            ) : (
+                bills.slice(0, 3).map((b) => (
+                    <div key={b.id} className="bill-item">
+                        <div className="bill-icon bg-blue-100 text-blue-600">
+                            {b.category === 'Housing' ? <Home size={18} /> : 
+                             b.category === 'Utilities' ? <Zap size={18} /> : 
+                             <Calendar size={18} />}
+                        </div>
+                        <div className="bill-details">
+                            <span className="bill-name">{b.name}</span>
+                            <span className="bill-date">{new Date(b.due_date).toLocaleDateString()}</span>
+                        </div>
+                        <div className="bill-action">
+                            <span className="bill-amount">${Number(b.amount).toLocaleString()}</span>
+                            <button className="btn-pay">Pay Now</button>
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
+    );
+};
+
 // ─────────────────────────────────────────────
 //  Render a dynamic widget by type
 // ─────────────────────────────────────────────
@@ -126,7 +157,7 @@ const DynamicWidget = ({ widget, records, onRemove }) => {
 
     const renderContent = () => {
         switch (type) {
-            case 'recentActivity':
+            case 'recentActivity': {
                 return records.length === 0 ? (
                     <p className="fd-entry-sub">No records yet. Use "+ Record" to add one.</p>
                 ) : (
@@ -148,45 +179,14 @@ const DynamicWidget = ({ widget, records, onRemove }) => {
                         </div>
                     ))
                 );
-
-            case 'budgetsOverview':
+            }
+            case 'budgetsOverview': {
                 return <BudgetMixTile />;
-
-            case 'upcomingBills':
-                const { data: bills = [], isLoading: billsLoading } = useQuery({
-                    queryKey: ['planned-payments'],
-                    queryFn: plannedPaymentsService.getPlannedPayments
-                });
-
-                if (billsLoading) return <p className="fd-entry-sub">Loading bills...</p>;
-                
-                return (
-                    <div className="bills-list">
-                        {bills.length === 0 ? (
-                            <p className="fd-entry-sub">No upcoming bills found.</p>
-                        ) : (
-                            bills.slice(0, 3).map((b) => (
-                                <div key={b.id} className="bill-item">
-                                    <div className="bill-icon bg-blue-100 text-blue-600">
-                                        {b.category === 'Housing' ? <Home size={18} /> : 
-                                         b.category === 'Utilities' ? <Zap size={18} /> : 
-                                         <Calendar size={18} />}
-                                    </div>
-                                    <div className="bill-details">
-                                        <span className="bill-name">{b.name}</span>
-                                        <span className="bill-date">{new Date(b.due_date).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="bill-action">
-                                        <span className="bill-amount">${Number(b.amount).toLocaleString()}</span>
-                                        <button className="btn-pay">Pay Now</button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                );
-
-            case 'totalLiquidity':
+            }
+            case 'upcomingBills': {
+                return <UpcomingBillsWidget />;
+            }
+            case 'totalLiquidity': {
                 return (
                     <div className="fd-liquidity-widget">
                         <span className="fd-liquidity-label">Total Liquidity</span>
@@ -197,19 +197,18 @@ const DynamicWidget = ({ widget, records, onRemove }) => {
                         </div>
                     </div>
                 );
-
-            case 'accountsSummary':
+            }
+            case 'accountsSummary': {
                 return <AccountsSummary />;
-
-            case 'spendingChart':
-                return <SpendingChart records={records} />;
-
+            }
+            case 'spendingChart': {
+                return <SpendingChart />;
+            }
             default:
                 return null;
         }
     };
 
-    // Liquidity widget handles its own full‑tile background
     if (type === 'totalLiquidity') {
         return (
             <motion.div key={id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -249,9 +248,8 @@ const DynamicWidget = ({ widget, records, onRemove }) => {
 //  Main Finance Dashboard Component
 // ─────────────────────────────────────────────
 const Finance = () => {
-    // ── State ──
     const [isRecordMenuOpen, setIsRecordMenuOpen] = useState(false);
-    const [recordModal, setRecordModal]           = useState(null); // 'income' | 'expense' | 'transfer' | null
+    const [recordModal, setRecordModal]           = useState(null);
     const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
     const [selectedWidgetType, setSelectedWidgetType] = useState(null);
     const [formError, setFormError]   = useState('');
@@ -262,8 +260,7 @@ const Finance = () => {
 
     const queryClient = useQueryClient();
 
-    // ── Queries ──
-    const { data: records = [], isLoading: isRecordsLoading } = useQuery({
+    const { data: records = [] } = useQuery({
         queryKey: ['transactions'],
         queryFn: transactionsService.getTransactions
     });
@@ -278,12 +275,11 @@ const Finance = () => {
         queryFn: plannedPaymentsService.getPlannedPayments
     });
 
-    // ── Mutations ──
     const addTransactionMutation = useMutation({
         mutationFn: transactionsService.createTransaction,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
-            queryClient.invalidateQueries({ queryKey: ['accounts'] }); // Balance changed
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
             closeModal();
         },
         onError: (err) => {
@@ -298,10 +294,8 @@ const Finance = () => {
 
     const recordMenuRef = useRef(null);
 
-    // Persist widgets on change (records now handled by API)
     useEffect(() => { localStorage.setItem('fd_widgets', JSON.stringify(widgets)); }, [widgets]);
 
-    // Close record dropdown on outside click
     useEffect(() => {
         const onClickOutside = (e) => {
             if (recordMenuRef.current && !recordMenuRef.current.contains(e.target)) {
@@ -312,7 +306,6 @@ const Finance = () => {
         return () => document.removeEventListener('mousedown', onClickOutside);
     }, []);
 
-    // ── Helpers ──
     const openRecordModal = (type) => {
         setRecordModal(type);
         setIsRecordMenuOpen(false);
@@ -328,7 +321,6 @@ const Finance = () => {
         addTransactionMutation.mutate(newRecord);
     };
 
-    // ── Submit handlers ──
     const handleIncomeSubmit = (e) => {
         e.preventDefault();
         if (!incomeForm.title || !incomeForm.category || !incomeForm.amount || !incomeForm.date) {
@@ -353,7 +345,6 @@ const Finance = () => {
         addRecord({ id: Date.now(), type: 'transfer', from: transferForm.from, to: transferForm.to, amount: parseFloat(transferForm.amount), date: transferForm.date, notes: transferForm.notes });
     };
 
-    // ── Widget handlers ──
     const handleAddWidget = () => {
         if (!selectedWidgetType) return;
         const alreadyAdded = widgets.some(w => w.type === selectedWidgetType);
@@ -366,23 +357,17 @@ const Finance = () => {
     const removeWidget = (id) => setWidgets((prev) => prev.filter(w => w.id !== id));
 
     const liquidity = accounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
-
-
-    // Latest 3 records to show in the built‑in Recent Activity tile
     const recentRecords = records.slice(0, 3);
 
     return (
         <>
-            {/* ── Top Header ── */}
             <div className="dashboard-header">
                 <div className="header-actions">
-                    {/* Add Widget */}
                     <button className="btn-primary" onClick={() => { setSelectedWidgetType(null); setIsWidgetModalOpen(true); }}>
                         <Plus size={16} />
                         <span>Add Widget</span>
                     </button>
 
-                    {/* Record dropdown */}
                     <div className="fd-record-menu-wrap" ref={recordMenuRef}>
                         <button className="btn-success" onClick={() => setIsRecordMenuOpen(!isRecordMenuOpen)}>
                             <Plus size={16} />
@@ -426,12 +411,9 @@ const Finance = () => {
                 </div>
             </div>
 
-            {/* ── Dashboard Grid ── */}
             <div className="books-dashboard-container">
                 <div className="bento-grid">
-                    {/* ── Left Column ── */}
                     <div className="bento-col-left">
-                        {/* Recent Activity Tile */}
                         <div className="bento-tile recent-activity-tile">
                             <div className="tile-header-row">
                                 <h2 className="tile-heading">Recent Activity</h2>
@@ -448,7 +430,6 @@ const Finance = () => {
                             </div>
 
                             <div className="activity-list">
-                                {/* New user records */}
                                 {recentRecords.map((r) => (
                                     <div key={r.id} className="activity-item">
                                         <div className={`activity-icon ${
@@ -457,7 +438,7 @@ const Finance = () => {
                                                                     'bg-orange-100 text-orange-600'
                                         }`}>
                                             {r.type === 'income'   && <Briefcase size={20} />}
-                                            {r.type === 'expense'  && <Utensils size={20} />}
+                                            {r.type === 'expense'  && <Home size={20} />}
                                             {r.type === 'transfer' && <ArrowLeftRight size={20} />}
                                         </div>
                                         <div className="activity-details">
@@ -469,7 +450,6 @@ const Finance = () => {
                                         </span>
                                     </div>
                                 ))}
-                                {/* Default static items when no records */}
                                 {recentRecords.length === 0 && (
                                     <div className="activity-item" style={{ justifyContent: 'center', opacity: 0.6 }}>
                                         <div className="activity-details" style={{ textAlign: 'center' }}>
@@ -481,7 +461,6 @@ const Finance = () => {
                             </div>
                         </div>
 
-                        {/* Budgets Tile */}
                         <div className="bento-tile budgets-tile">
                             <div className="tile-header-row" style={{ marginBottom: '1rem' }}>
                                 <h2 className="tile-heading">Budgets</h2>
@@ -490,9 +469,7 @@ const Finance = () => {
                         </div>
                     </div>
 
-                    {/* ── Right Column ── */}
                     <div className="bento-col-right">
-                        {/* Total Liquidity Tile */}
                         <div className="bento-tile liquidity-card">
                             <span className="liquidity-label">Total Liquidity</span>
                             <h1 className="liquidity-amount">
@@ -504,7 +481,6 @@ const Finance = () => {
                             </div>
                         </div>
 
-                        {/* Upcoming Bills Tile */}
                         <div className="bento-tile bills-tile">
                             <h2 className="tile-heading">Upcoming Bills</h2>
                             <div className="bills-list">
@@ -542,7 +518,6 @@ const Finance = () => {
                     </div>
                 </div>
 
-                {/* ── Extra Dynamic Widgets ── */}
                 <AnimatePresence>
                     {widgets.length > 0 && (
                         <motion.div
@@ -560,9 +535,6 @@ const Finance = () => {
                 </AnimatePresence>
             </div>
 
-            {/* ══════════════════════════════════════════
-                MODAL: Add Widget
-              ══════════════════════════════════════════ */}
             <AnimatePresence>
                 {isWidgetModalOpen && (
                     <div className="modal-overlay">
@@ -612,9 +584,6 @@ const Finance = () => {
                 )}
             </AnimatePresence>
 
-            {/* ══════════════════════════════════════════
-                MODAL: Record Income
-              ══════════════════════════════════════════ */}
             <AnimatePresence>
                 {recordModal === 'income' && (
                     <div className="modal-overlay">
@@ -669,9 +638,6 @@ const Finance = () => {
                 )}
             </AnimatePresence>
 
-            {/* ══════════════════════════════════════════
-                MODAL: Record Expense
-              ══════════════════════════════════════════ */}
             <AnimatePresence>
                 {recordModal === 'expense' && (
                     <div className="modal-overlay">
@@ -726,9 +692,6 @@ const Finance = () => {
                 )}
             </AnimatePresence>
 
-            {/* ══════════════════════════════════════════
-                MODAL: Record Transfer
-              ══════════════════════════════════════════ */}
             <AnimatePresence>
                 {recordModal === 'transfer' && (
                     <div className="modal-overlay">

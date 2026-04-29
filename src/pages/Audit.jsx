@@ -188,42 +188,43 @@ const Audit = () => {
     const location = useLocation();
     const path = location.pathname;
 
-    let Content;
-    if (path.includes('/new')) Content = ChatView;
-    else if (path.includes('/recent')) Content = () => <AuditListView type="Recent" />;
-    else if (path.includes('/all')) Content = () => <AuditListView type="All" />;
-    else if (path.includes('/findings')) Content = FindingsView;
-    else if (path.includes('/reports')) Content = () => (
-        <div className="audit-stub-card fade-in">
-            <div className="audit-stub-header">
-                <h2 className="findings-title">Reports</h2>
+    const renderContent = () => {
+        if (path.includes('/new')) return <ChatView />;
+        if (path.includes('/recent')) return <AuditListView type="Recent" />;
+        if (path.includes('/all')) return <AuditListView type="All" />;
+        if (path.includes('/findings')) return <FindingsView />;
+        if (path.includes('/reports')) return (
+            <div className="audit-stub-card fade-in">
+                <div className="audit-stub-header">
+                    <h2 className="findings-title">Reports</h2>
+                </div>
+                <EmptyState
+                    icon={FileText}
+                    title="Reports Dashboard"
+                    message="This section is currently under development. Check back later for reports updates."
+                    actionLabel="Go to Recent Audits"
+                    onAction={() => window.history.back()}
+                />
             </div>
-            <EmptyState
-                icon={FileText}
-                title="Reports Dashboard"
-                message="This section is currently under development. Check back later for reports updates."
-                actionLabel="Go to Recent Audits"
-                onAction={() => window.history.back()}
-            />
-        </div>
-    );
-    else if (path.includes('/settings')) Content = () => (
-        <div className="audit-stub-card fade-in">
-            <div className="audit-stub-header">
-                <h2 className="findings-title">Audit Settings</h2>
+        );
+        if (path.includes('/settings')) return (
+            <div className="audit-stub-card fade-in">
+                <div className="audit-stub-header">
+                    <h2 className="findings-title">Audit Settings</h2>
+                </div>
+                <EmptyState
+                    icon={Search}
+                    title="Configuration"
+                    message="This section is currently under development. Check back later for audit settings updates."
+                />
             </div>
-            <EmptyState
-                icon={Search}
-                title="Configuration"
-                message="This section is currently under development. Check back later for audit settings updates."
-            />
-        </div>
-    );
-    else Content = ChatView; // Default
+        );
+        return <ChatView />; // Default
+    };
 
     return (
         <div className="audit-page-wrapper">
-            <Content />
+            {renderContent()}
         </div>
     );
 };

@@ -1,0 +1,537 @@
+
+> books@0.0.0 lint
+> eslint .
+
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/api/client.js
+  162:14  error  'error' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/ProfileDropdown.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+  13:19  error  'loading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/Sidebar.jsx
+   59:12  error  'expandedSections' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  106:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  104 |     useEffect(() => {
+  105 |         if (!isOpen) {
+> 106 |             setOpenDropdown(null);
+      |             ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  107 |         }
+  108 |     }, [isOpen]);
+  109 |  react-hooks/set-state-in-effect
+  110:11  error  'toggleSection' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/common/EmptyState.jsx
+  18:11  error  'Icon' is assigned a value but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/dashboard/BudgetMixTile.jsx
+  20:29  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/dashboard/MoneyGoalsTile.jsx
+  11:66  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/ui/accordion.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/components/ui/toggle.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/context/AuthContext.jsx
+  22:21  error    Error: Cannot access variable before it is declared
+
+`logout` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  20 |                 } catch (error) {
+  21 |                     console.error('[AuthContext] Failed to fetch profile:', error);
+> 22 |                     logout();
+     |                     ^^^^^^ `logout` accessed before it is declared
+  23 |                 }
+  24 |             }
+  25 |             setLoading(false);
+
+  63 |     };
+  64 |
+> 65 |     const logout = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^
+> 66 |         localStorage.removeItem('books_auth_token');
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 67 |         setToken(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |         setUser(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |         // Clear query cache to prevent User B from seeing User A's cached data
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 70 |         queryClient.clear();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |     };
+     | ^^^^^^^ `logout` is declared here
+  72 |
+  73 |     const value = {
+  74 |         user,  react-hooks/immutability
+  33:8   warning  React Hook useEffect has a missing dependency: 'logout'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  90:14  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-refresh/only-export-components
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Accounts.jsx
+   6:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u              no-unused-vars
+  20:53  error  'Icon' is defined but never used                                                           no-unused-vars
+  43:34  error  'isLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Audit.jsx
+  226:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  224 |     return (
+  225 |         <div className="audit-page-wrapper">
+> 226 |             <Content />
+      |              ^^^^^^^ This component is created during render
+  227 |         </div>
+  228 |     );
+  229 | };
+
+  191 |     let Content;
+  192 |     if (path.includes('/new')) Content = ChatView;
+> 193 |     else if (path.includes('/recent')) Content = () => <AuditListView type="Recent" />;
+      |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ The component is created during render here
+  194 |     else if (path.includes('/all')) Content = () => <AuditListView type="All" />;
+  195 |     else if (path.includes('/findings')) Content = FindingsView;
+  196 |     else if (path.includes('/reports')) Content = () => (  react-hooks/static-components
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Books.jsx
+  15:38  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Budgets.jsx
+   6:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  42:52  error  'Icon' is defined but never used                                               no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Debts.jsx
+  31:50  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Expenses.jsx
+  33:53  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Finance.jsx
+    2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                        no-unused-vars
+   27:5   error  'homeService' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                   no-unused-vars
+   72:26  error  'records' is defined but never used                                                                                                                                                                                                                  no-unused-vars
+  156:17  error  Unexpected lexical declaration in case block                                                                                                                                                                                                         no-case-declarations
+  156:71  error  React Hook "useQuery" is called in function "renderContent" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word "use"  react-hooks/rules-of-hooks
+  266:44  error  'isRecordsLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                     no-unused-vars
+  581:77  error  'Icon' is defined but never used                                                                                                                                                                                                                     no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/FinancialContacts.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/GoalWallets.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+  45:18  error  'isWalletsError' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Income.jsx
+  29:51  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/People.jsx
+  15:37  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/PlannedPayments.jsx
+   6:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  23:53  error  'Icon' is defined but never used                                               no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Profile.jsx
+  19:22  error  'useNavigate' is not defined                                                                      no-undef
+  21:43  error  'useState' is not defined                                                                         no-undef
+  22:47  error  'useState' is not defined                                                                         no-undef
+  41:44  error  'isSummaryLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  52:43  error  'useState' is not defined                                                                         no-undef
+  53:43  error  'useState' is not defined                                                                         no-undef
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Public.jsx
+  1:20  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Savings.jsx
+  28:53  error  'Icon' is defined but never used  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Segregation.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+  45:9   error  'isError' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  46:9   error  'refetch' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Settings.jsx
+    9:47  error  'useState' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-undef
+   18:19  error  'serverSettings' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+   43:44  error  'Icon' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+   94:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  92 |             </div>
+  93 |
+> 94 |             <SettingSection title="Preferences" icon={Globe}>
+     |              ^^^^^^^^^^^^^^ This component is created during render
+  95 |                 <SettingItem
+  96 |                     label="Dark Mode"
+  97 |                     description="Use a dark theme for the application interface."
+
+  41 |     };
+  42 |
+> 43 |     const SettingSection = ({ title, icon: Icon, children }) => (
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 44 |         <div style={{ marginBottom: '2rem' }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |     );
+     | ^^^^^^ The component is created during render here
+  56 |
+  57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+  58 |         <div style={{                                   react-hooks/static-components
+   95:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  93 |
+  94 |             <SettingSection title="Preferences" icon={Globe}>
+> 95 |                 <SettingItem
+     |                  ^^^^^^^^^^^ This component is created during render
+  96 |                     label="Dark Mode"
+  97 |                     description="Use a dark theme for the application interface."
+  98 |                     isToggled={localSettings.darkMode}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                                                                          react-hooks/static-components
+  101:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+   99 |                     onToggle={() => handleToggle('darkMode')}
+  100 |                 />
+> 101 |                 <SettingItem
+      |                  ^^^^^^^^^^^ This component is created during render
+  102 |                     label="Language"
+  103 |                     description="Current system language: English (US)"
+  104 |                     isToggled={true}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                                                                             react-hooks/static-components
+  110:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  108 |             </SettingSection>
+  109 |
+> 110 |             <SettingSection title="Notifications" icon={Bell}>
+      |              ^^^^^^^^^^^^^^ This component is created during render
+  111 |                 <SettingItem
+  112 |                     label="Push Notifications"
+  113 |                     description="Receive real-time alerts for updates and activities."
+
+  41 |     };
+  42 |
+> 43 |     const SettingSection = ({ title, icon: Icon, children }) => (
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 44 |         <div style={{ marginBottom: '2rem' }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |     );
+     | ^^^^^^ The component is created during render here
+  56 |
+  57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+  58 |         <div style={{  react-hooks/static-components
+  111:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  109 |
+  110 |             <SettingSection title="Notifications" icon={Bell}>
+> 111 |                 <SettingItem
+      |                  ^^^^^^^^^^^ This component is created during render
+  112 |                     label="Push Notifications"
+  113 |                     description="Receive real-time alerts for updates and activities."
+  114 |                     isToggled={localSettings.notifications}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                                               react-hooks/static-components
+  117:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  115 |                     onToggle={() => handleToggle('notifications')}
+  116 |                 />
+> 117 |                 <SettingItem
+      |                  ^^^^^^^^^^^ This component is created during render
+  118 |                     label="Email Digest"
+  119 |                     description="Receive a weekly summary of your financial activity."
+  120 |                     isToggled={localSettings.emailDigest}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                                react-hooks/static-components
+  126:14  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  124 |             </SettingSection>
+  125 |
+> 126 |             <SettingSection title="Privacy & Security" icon={Shield}>
+      |              ^^^^^^^^^^^^^^ This component is created during render
+  127 |                 <SettingItem
+  128 |                     label="Public Profile"
+  129 |                     description="Allow other users on the platform to find you."
+
+  41 |     };
+  42 |
+> 43 |     const SettingSection = ({ title, icon: Icon, children }) => (
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 44 |         <div style={{ marginBottom: '2rem' }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |     );
+     | ^^^^^^ The component is created during render here
+  56 |
+  57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+  58 |         <div style={{     react-hooks/static-components
+  127:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  125 |
+  126 |             <SettingSection title="Privacy & Security" icon={Shield}>
+> 127 |                 <SettingItem
+      |                  ^^^^^^^^^^^ This component is created during render
+  128 |                     label="Public Profile"
+  129 |                     description="Allow other users on the platform to find you."
+  130 |                     isToggled={localSettings.publicProfile}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                                                  react-hooks/static-components
+  133:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  131 |                     onToggle={() => handleToggle('publicProfile')}
+  132 |                 />
+> 133 |                 <SettingItem
+      |                  ^^^^^^^^^^^ This component is created during render
+  134 |                     label="Two-Factor Authentication"
+  135 |                     description="Add an extra layer of security to your account."
+  136 |                     isToggled={localSettings.twoFactor}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                          react-hooks/static-components
+  139:18  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  137 |                     onToggle={() => handleToggle('twoFactor')}
+  138 |                 />
+> 139 |                 <SettingItem
+      |                  ^^^^^^^^^^^ This component is created during render
+  140 |                     label="Data & Analytics"
+  141 |                     description="Allow usage data to be collected to improve experience."
+  142 |                     isToggled={localSettings.dataSharing}
+
+  55 |     );
+  56 |
+> 57 |     const SettingItem = ({ label, description, isToggled, onToggle, last = false }) => (
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |         <div style={{
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 59 |             display: 'flex',
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 75 |         </div>
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 76 |     );
+     | ^^^^^^ The component is created during render here
+  77 |
+  78 |     if (isLoading) {
+  79 |         return (                                                                                                                                                             react-hooks/static-components
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/SplitExpense.jsx
+    2:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+   54:18  error    'isSummaryError' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+  209:11  error    'addItemField' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+  213:11  error    'updateItem' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  217:11  error    'toggleItemParticipant' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  249:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `calculateSplits`, but the source dependencies were [formData, splitType, items]. Inferred different dependency than source.
+
+  247 |     );
+  248 |
+> 249 |     const calculatedPreview = useMemo(() => calculateSplits(), [formData, splitType, items]);
+      |                                       ^^^^^^^^^^^^^^^^^^^^^^^ Could not preserve existing manual memoization
+  250 |
+  251 |     return (
+  252 |         <div className="split-page">  react-hooks/preserve-manual-memoization
+  249:64  warning  React Hook useMemo has a missing dependency: 'calculateSplits'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/Transactions.jsx
+    8:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+   45:50  error  'Icon' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+   70:38  error  'isLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  265:56  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  263 |                             {filtered.map((item) => {
+  264 |                                 const ItemIcon = getIcon(item.category);
+> 265 |                                 const pct = Math.floor(Math.random() * 70) + 20;
+      |                                                        ^^^^^^^^^^^^^ Cannot call impure function
+  266 |                                 return (
+  267 |                                     <tr key={item.id} className="table-row-card">
+  268 |                                         <td><div className="custom-checkbox" /></td>  react-hooks/purity
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/books/Dashboard.jsx
+   37:51  error  'Icon' is defined but never used              no-unused-vars
+  378:17  error  Unexpected lexical declaration in case block  no-case-declarations
+  379:17  error  Unexpected lexical declaration in case block  no-case-declarations
+  380:17  error  Unexpected lexical declaration in case block  no-case-declarations
+  381:17  error  Unexpected lexical declaration in case block  no-case-declarations
+  406:17  error  Unexpected lexical declaration in case block  no-case-declarations
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/financial-plan/FinancialPlan.jsx
+   75:8   warning  React Hook React.useEffect has a missing dependency: 'createPlanMutation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   81:57  error    'error' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                        no-unused-vars
+  150:11  error    'handleCreateFirstPlan' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                        no-unused-vars
+  174:11  error    'isDataLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/financial-plan/PlanAnalysis.jsx
+  21:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/financial-plan/PlanExpense.jsx
+  16:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/financial-plan/PlanGoals.jsx
+  22:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+  32:25  error  'setSearchQuery' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/financial-plan/PlanIncome.jsx
+  21:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/people/PeopleOverview.jsx
+  21:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/people/PeopleRecords.jsx
+  25:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/people/PeopleReminders.jsx
+  19:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/people/PeopleTransactions.jsx
+  22:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/people/PersonProfile.jsx
+   4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                       no-unused-vars
+  57:49  error  'isTxLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u         no-unused-vars
+  62:44  error  'isRecordsLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+  67:46  error  'isRemindersLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  72:44  error  'isWalletsLoading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+
+/Users/btc001a/Downloads/Flutter/fin/CLIKS-FE/src/pages/public/SocialFeed.jsx
+    2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  238:50  error  'Icon' is defined but never used                                               no-unused-vars
+
+✖ 98 problems (95 errors, 3 warnings)
+
